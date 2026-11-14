@@ -1,0 +1,6 @@
+{
+  "name": "PrinterLab",
+  "description": "Simulador interactivo educativo de diagnóstico y resolución de averías de impresión (Láser, Inyección de Tinta y Matricial).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
