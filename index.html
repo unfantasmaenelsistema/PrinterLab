@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="./assets/aistudio/icono_81a3db5b.png" />
+    <link rel="icon" type="image/png" href="./assets/logo.png" />
     <title>PrinterLab — Simulador de Diagnóstico de Impresión</title>
     <meta
       name="description"
@@ -25,31 +25,6 @@
       rel="stylesheet"
     />
 
-    <!-- Tailwind CSS vía CDN para ejecución 100% cliente (GitHub Pages) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              display: ['Outfit', 'system-ui', 'sans-serif'],
-              sans: ['DM Sans', 'system-ui', 'sans-serif'],
-              mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
-            },
-            colors: {
-              lab: {
-                canvas: '#090E1A',
-                surface: '#111827',
-                panel: '#0F172A',
-                border: '#1E293B',
-                accent: '#0EA5E9',
-              },
-            },
-          },
-        },
-      };
-    </script>
 
     <style>
       /* Reglas mínimas de laboratorio para scrollbars discretos, cuadrícula técnica y renderizado tabular */
@@ -164,6 +139,9 @@
         background: #475569;
       }
     </style>
+
+    <!-- Tailwind CSS compilado en el build (antes: CDN de desarrollo, que avisa de no usarse en producción) -->
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
 
   <body class="min-h-screen flex flex-col bg-lab-canvas text-slate-200 antialiased selection:bg-sky-500/30 selection:text-sky-200">
@@ -179,7 +157,7 @@
           class="flex items-center gap-3 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-md"
         >
           <img
-            src="./assets/aistudio/icono_81a3db5b.png"
+            src="./assets/logo.png"
             alt="Logo Un Fantasma en el Sistema"
             class="h-9 w-9 object-contain shrink-0 rounded-md bg-slate-900/70 p-0.5 border border-slate-800"
             referrerpolicy="no-referrer"
@@ -630,6 +608,7 @@
                     <span class="text-xs text-slate-500 mr-1">Simular estado:</span>
                     <button
                       type="button"
+                      id="btn-restore-all"
                       onclick="PrinterLab.restoreAllComponents()"
                       class="px-2.5 py-1 text-xs font-mono bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-slate-700 rounded transition-colors whitespace-nowrap"
                     >
@@ -1233,7 +1212,7 @@
       <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
         <div class="flex items-center gap-3">
           <img
-            src="./assets/aistudio/icono_81a3db5b.png"
+            src="./assets/logo.png"
             alt="Logo Un Fantasma en el Sistema"
             class="h-8 w-8 object-contain shrink-0"
             referrerpolicy="no-referrer"
@@ -1427,6 +1406,28 @@
        */
       const STORAGE_KEY = 'printerlab_ctf_progress_v1';
 
+      /** Escapa texto antes de meterlo en innerHTML. */
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+      }
+
+      /**
+       * Progreso guardado o importado: solo se aceptan tickets que existen y cuya flag es la correcta.
+       * Antes se aceptaba cualquier objeto, así que un código manipulado marcaba tickets como resueltos
+       * y su "flag" se pintaba sin escapar (XSS al importar el progreso de otra persona).
+       */
+      function sanitizeSolvedTickets(raw) {
+        const clean = {};
+        if (!raw || typeof raw !== 'object') return clean;
+        for (const sc of HELP_DESK_SCENARIOS) {
+          const entry = raw[sc.id];
+          if (!entry || typeof entry !== 'object' || entry.flag !== sc.flag) continue;
+          const t = Date.parse(entry.solvedAt);
+          clean[sc.id] = { flag: sc.flag, solvedAt: Number.isNaN(t) ? new Date().toISOString() : new Date(t).toISOString() };
+        }
+        return clean;
+      }
+
       const HELP_DESK_SCENARIOS = [
         {
           id: 'level1',
@@ -1467,7 +1468,7 @@
                 hint: 'El problema físico sigue presente en el módulo de formación de imagen. Inspecciona los componentes internos.'
               };
             }
-            if (!state.ctf.verifiedPrintInLevel) {
+            if (!state.ctf.verifiedPrintInLevel || state.ctf.verifiedPrintModel !== 'laser') {
               return {
                 ok: false,
                 hint: 'Has corregido el componente, pero falta hacer clic en "Imprimir Página de Prueba" para confirmar que las manchas desaparecieron.'
@@ -1674,7 +1675,7 @@
                 hint: 'La cinta entintada de la impresora matricial sigue desgastada o el equipo no está activo.'
               };
             }
-            if (!state.ctf.verifiedPrintInLevel) {
+            if (!state.ctf.verifiedPrintInLevel || state.ctf.verifiedPrintModel !== 'dotmatrix') {
               return {
                 ok: false,
                 hint: 'Has reemplazado la cinta, pero falta imprimir una página de prueba para confirmar que el albarán sale nítido.'
@@ -2208,7 +2209,22 @@
         /**
          * Restaura la salud de todos los componentes de la impresora activa al 100%.
          */
+        /** Hay un ticket abierto y todavía sin resolver. */
+        isTicketInProgress() {
+          const ctf = PrinterLabState.ctf;
+          return Boolean(ctf.activeTicketId && !ctf.solvedTickets[ctf.activeTicketId]);
+        },
+
         restoreAllComponents() {
+          // Con un ticket en curso, "Salud 100%" arreglaba la avería sin diagnosticarla
+          if (this.isTicketInProgress()) {
+            PrinterLabState.ctf.validationFeedback = {
+              type: 'error',
+              message: '«Salud 100%» no está disponible durante un ticket: inspecciona los componentes y sustituye el que falla.'
+            };
+            this.renderHelpDeskPanel();
+            return;
+          }
           const modelKey = PrinterLabState.printer.activeModel;
           const fresh = createInitialComponentsState()[modelKey];
           Object.keys(fresh).forEach((k) => {
@@ -2269,6 +2285,7 @@
             const drumHealthy = comps.drum.health >= 35;
             if (drumHealthy && comps.drum.health >= 90) {
               PrinterLabState.ctf.verifiedPrintInLevel = true;
+              PrinterLabState.ctf.verifiedPrintModel = 'laser';
             }
             p.lastPrintResult = {
               blocked: false,
@@ -2293,6 +2310,7 @@
             const faintRibbon = comps.ribbon.health < 25;
             if (!faintRibbon && comps.ribbon.health >= 90) {
               PrinterLabState.ctf.verifiedPrintInLevel = true;
+              PrinterLabState.ctf.verifiedPrintModel = 'dotmatrix';
             }
             p.lastPrintResult = {
               blocked: false,
@@ -2848,7 +2866,7 @@
             if (!raw) return;
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed.solvedTickets === 'object') {
-              PrinterLabState.ctf.solvedTickets = parsed.solvedTickets;
+              PrinterLabState.ctf.solvedTickets = sanitizeSolvedTickets(parsed.solvedTickets);
             }
           } catch (err) {
             // Ignorar datos corruptos
@@ -2917,14 +2935,23 @@
             if (!parsed || typeof parsed.solvedTickets !== 'object') {
               throw new Error('Formato inválido');
             }
-            PrinterLabState.ctf.solvedTickets = parsed.solvedTickets;
+            const recibidos = Object.keys(parsed.solvedTickets || {}).length;
+            const validos = sanitizeSolvedTickets(parsed.solvedTickets);
+            const n = Object.keys(validos).length;
+            if (recibidos > 0 && n === 0) {
+              throw new Error('Ningún ticket válido');
+            }
+            PrinterLabState.ctf.solvedTickets = validos;
             this.saveProgressToStorage();
             fb.className = 'text-[11px] text-emerald-400';
-            fb.textContent = 'Progreso restaurado correctamente.';
+            fb.textContent =
+              n === recibidos
+                ? `Progreso restaurado: ${n} ticket(s) resuelto(s).`
+                : `Progreso restaurado: ${n} ticket(s) válido(s); se descartaron ${recibidos - n} con flag incorrecta.`;
             this.renderHelpDeskPanel();
           } catch (e) {
             fb.className = 'text-[11px] text-rose-400';
-            fb.textContent = 'Código Base64 inválido o corrupto.';
+            fb.textContent = 'Código de progreso inválido, corrupto o con flags que no corresponden.';
           }
         },
 
@@ -2978,6 +3005,18 @@
          */
         renderHelpDeskPanel() {
           const ctf = PrinterLabState.ctf;
+          // «Salud 100%» solo fuera de un ticket sin resolver (se repinta con cada cambio de progreso)
+          const restoreBtn = document.getElementById('btn-restore-all');
+          if (restoreBtn) {
+            const locked = this.isTicketInProgress();
+            restoreBtn.disabled = locked;
+            restoreBtn.classList.toggle('opacity-40', locked);
+            restoreBtn.classList.toggle('cursor-not-allowed', locked);
+            restoreBtn.title = locked
+              ? 'No disponible durante un ticket: diagnostica y sustituye el componente averiado.'
+              : 'Restaura todos los componentes de la impresora activa al 100 %';
+          }
+
           const solvedCount = Object.keys(ctf.solvedTickets).length;
           document.getElementById('ctf-progress-text').textContent =
             `${solvedCount} / ${HELP_DESK_SCENARIOS.length} resueltos`;
@@ -3034,7 +3073,7 @@
                 fb.type === 'success'
                   ? 'border-emerald-500/40 bg-emerald-950/35 text-emerald-200'
                   : 'border-amber-500/40 bg-amber-950/35 text-amber-200'
-              }">${fb.message}</div>`
+              }">${escapeHtml(fb.message)}</div>`
             : '';
 
           activePanel.innerHTML = `
@@ -3049,7 +3088,7 @@
               </p>
               ${
                 isSolved
-                  ? `<div class="text-[11px] font-mono text-emerald-400">Flag registrada: ${ctf.solvedTickets[activeScenario.id].flag}</div>`
+                  ? `<div class="text-[11px] font-mono text-emerald-400">Flag registrada: ${escapeHtml(activeScenario.flag)}</div>`
                   : ''
               }
             </div>
