@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.unfantasmaenelsistema.com/" target="_blank" rel="noopener noreferrer">
-    <img src="./assets/aistudio/icono_81a3db5b.png" alt="Logo Un Fantasma en el Sistema — PrinterLab" width="96" />
+    <img src="./public/assets/logo.png" alt="Logo Un Fantasma en el Sistema — PrinterLab" width="96" />
   </a>
 </p>
 
@@ -12,13 +12,17 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Arquitectura-100%25%20Cliente-0EA5E9?style=flat-square" alt="100% Cliente" />
-  <img src="https://img.shields.io/badge/Stack-Vanilla%20JS%20%2B%20Tailwind%20CSS-38BDF8?style=flat-square" alt="Vanilla JS + Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Deploy-GitHub%20Pages%20Ready-10B981?style=flat-square" alt="GitHub Pages Ready" />
+  <img src="https://img.shields.io/badge/Stack-Vanilla%20JS%20%2B%20Tailwind%20CSS%20%2B%20Vite-38BDF8?style=flat-square" alt="Vanilla JS + Tailwind CSS + Vite" />
+  <a href="https://unfantasmaenelsistema.github.io/PrinterLab/"><img src="https://img.shields.io/badge/Probar-en%20el%20navegador-10B981?style=flat-square&logo=github" alt="Probar en GitHub Pages" /></a>
   <img src="https://img.shields.io/badge/Licencia-MIT-64748B?style=flat-square" alt="Licencia MIT" />
 </p>
 
 <p align="center">
   Proyecto educativo de <a href="https://www.unfantasmaenelsistema.com/" target="_blank" rel="noopener noreferrer">unfantasmaenelsistema.com</a>
+</p>
+
+<p align="center">
+  <strong><a href="https://unfantasmaenelsistema.github.io/PrinterLab/">▶ Abrir el simulador</a></strong>
 </p>
 
 ---
@@ -33,17 +37,22 @@ Combina en un mismo entorno interactivo el **hardware físico de tres tecnologí
 
 ## Capturas reales de la aplicación
 
+> Capturas de la versión 2 tomadas sobre la compilación de producción.
+
 ### 1. Vista dividida completa (HelpDesk + Panel Físico + Consola Windows MMC)
 ![Vista general de PrinterLab en modo dividido](./docs/screenshots/01-vista-general.png)
 
 ### 2. Motor de Hardware abierto, tooltips educativos y simulación de defectos en papel
-![Esquema interno con cubierta abierta, tooltip del Fusor y página de prueba con manchas repetitivas del tambor OPC](./docs/screenshots/02-hardware-fusor-hover-y-fallo.png)
+![Esquema interno con cubierta abierta, ficha del Fusor y página de prueba con manchas repetitivas del tambor OPC](./docs/screenshots/02-hardware-fusor-hover-y-fallo.png)
 
 ### 3. Diagnóstico combinado Hardware + Spooler (`Err 50.4` y documento bloqueado en cola)
 ![Fallo térmico Err 50.4 en pantalla LCD y error al cancelar trabajo bloqueado por spoolsv.exe](./docs/screenshots/03-consola-windows-spooler.png)
 
 ### 4. Validación CTF ("Flag capturada") y explicación técnica de la causa raíz
 ![Modal de éxito CTF tras resolver el ticket mixto HW+SW](./docs/screenshots/04-ctf-flag-capturada.png)
+
+### 5. Versión móvil
+<img src="./docs/screenshots/05-movil.png" alt="PrinterLab en un móvil" width="300" />
 
 ---
 
@@ -76,7 +85,8 @@ Ventana estilo **Microsoft Management Console (MMC 3.0)** con tres herramientas 
 
 ### 3. Motor CTF / HelpDesk y Guía Técnica
 - **6 escenarios de averías progresivos** que modifican silenciosamente el hardware o el sistema operativo para entrenar el diagnóstico sin pistas iniciales.
-- **Persistencia local (`localStorage`)** + **Exportar / Importar progreso en Base64** para compartir o entregar evidencias en clase.
+- **Diagnóstico sin atajos**: durante un ticket sin resolver, el botón **Salud 100%** queda desactivado; hay que inspeccionar y sustituir el componente averiado. Las páginas de prueba solo cuentan en la impresora del ticket.
+- **Persistencia local (`localStorage`)** + **Exportar / Importar progreso en Base64** para compartir o entregar evidencias en clase. Al importar solo se aceptan los tickets cuya flag es la correcta; un código manipulado se rechaza.
 - **Guía Técnica integrada**: modal de referencia rápida accesible desde la barra superior con la metodología por capas (*Físico → Enlace → Driver → Spooler*) y tabla de síntomas.
 
 ---
@@ -94,33 +104,27 @@ Ventana estilo **Microsoft Management Console (MMC 3.0)** con tres herramientas 
 
 ---
 
-## Despliegue en GitHub Pages (Static Ready)
+## Despliegue en GitHub Pages
 
-El simulador principal reside íntegramente en `/index.html` con Tailwind CSS vía CDN, Vanilla JS y rutas relativas (`./assets/...`), además del archivo `.nojekyll` en la raíz.
+El simulador vive en `/index.html` (HTML + JavaScript plano). Vite compila Tailwind CSS (antes se cargaba en tiempo de ejecución desde el CDN de desarrollo) y copia el logo; `base: './'` hace que funcione en cualquier subcarpeta.
 
-1. Sube el repositorio a GitHub.
-2. Ve a **Settings → Pages**.
-3. En **Build and deployment**, selecciona **Deploy from a branch**, rama `main` y carpeta `/ (root)`.
-4. Guarda los cambios: GitHub Pages servirá `index.html` directamente sin pasos de compilación.
+El flujo [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) se ejecuta en cada `push` a `main`: instala con Bun (`bun install --frozen-lockfile`), compila `./dist` y lo publica en https://unfantasmaenelsistema.github.io/PrinterLab/ (en **Settings → Pages**, la fuente es **GitHub Actions**).
 
 ---
 
 ## Ejecución local
 
-Puedes abrir directamente `index.html` o levantarlo con cualquier servidor HTTP estático:
+Requisitos: **[Bun](https://bun.sh/)** (el proyecto usa `bun.lock`).
 
 ```bash
-# Opción 1: Servidor estático con Python
-python3 -m http.server 3000
-
-# Opción 2: Servidor estático con Node / npx
-npx serve . -l 3000
-
-# Opción 3: Mediante el script incluido en el entorno
-npm run dev
+git clone https://github.com/unfantasmaenelsistema/PrinterLab.git
+cd PrinterLab
+bun install
+bun run dev        # http://localhost:3000
+bun run build      # genera ./dist para publicar
 ```
 
-Después abre `http://localhost:3000` en tu navegador.
+Abrir `index.html` directamente ya no basta: los estilos de Tailwind se generan al compilar.
 
 ---
 
@@ -128,21 +132,31 @@ Después abre `http://localhost:3000` en tu navegador.
 
 ```text
 .
-├── index.html                          # Aplicación monolítica (UI + Motor HW + Consola PC + Motor CTF)
-├── assets/aistudio/icono_81a3db5b.png  # Logotipo para despliegue estático en raíz (GitHub Pages)
-├── public/assets/aistudio/             # Logotipo para servidores Vite
-├── docs/screenshots/                   # Capturas reales de la aplicación
-│   ├── 01-vista-general.png
-│   ├── 02-hardware-fusor-hover-y-fallo.png
-│   ├── 03-consola-windows-spooler.png
-│   └── 04-ctf-flag-capturada.png
-├── .nojekyll                           # Desactiva Jekyll en GitHub Pages
-├── LICENSE                             # Licencia MIT
-└── README.md                           # Documentación del proyecto
+├── index.html                    # Aplicación (UI + Motor HW + Consola PC + Motor CTF)
+├── src/styles.css                # Entrada de Tailwind CSS
+├── tailwind.config.js            # Tipografías y colores del laboratorio
+├── postcss.config.js
+├── vite.config.js                # Build estático con base relativa
+├── public/assets/logo.png        # Logotipo de la casa
+├── docs/screenshots/             # Capturas reales de la aplicación
+├── .github/workflows/deploy.yml  # Compilación con Bun y despliegue en GitHub Pages
+├── LICENSE                       # Licencia MIT
+└── README.md
 ```
 
 ---
 
-## Licencia
+## Novedades de la versión 2
+
+- **Publicada en GitHub Pages** con un flujo de Bun; antes el repositorio no tenía Pages activado ni workflow.
+- **Tailwind compilado** en lugar del CDN de desarrollo, que avisaba en la consola de no usarse en producción. El aspecto es el mismo (comparado píxel a píxel).
+- **Sin atajo «Salud 100%»**: con un ticket en curso ya no arregla la avería sin diagnosticarla.
+- **Importación de progreso segura**: un código manipulado podía marcar tickets como resueltos y ejecutar código en el navegador de quien lo importaba (la «flag» se pintaba sin escapar). Ahora solo se aceptan tickets con su flag correcta y todo se escapa.
+- **Página de prueba por impresora**: imprimir en la láser ya no valida el ticket de la matricial (y al revés).
+- **Limpieza**: fuera el esqueleto de React sin uso, las dependencias y ficheros de AI Studio y el logo duplicado.
+
+---
+
+## Licencia## Licencia
 
 Distribuido bajo licencia **MIT**. Consulta el archivo [`LICENSE`](./LICENSE) para más detalles.
