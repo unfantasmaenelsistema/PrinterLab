@@ -61,8 +61,8 @@ Combina en un mismo entorno interactivo el **hardware físico de tres tecnologí
 ### 1. Panel Físico (Hardware de Impresión)
 - **Tres tecnologías simuladas**:
   - **Láser Color CMYK (`GhostJet ColorLaser M454dw`)**: Tóner C/M/Y/K, Tambor OPC, Unidad Fusora (~200 °C) y Rodillos Pick-up.
-  - **Inyección de Tinta (`GhostJet InkPro X477`)**: Cartuchos de tinta, Cabezal piezoeléctrico (con rutina de **limpieza de cabezales**) y Caja de mantenimiento / absorbedor residual.
-  - **Matricial (`GhostJet DotMatrix LX-350`)**: Cinta entintada (*Ribbon*), Tractor de papel continuo y Cabezal de 9 agujas.
+  - **Inyección de Tinta (`GhostInk EcoPro L3250`)**: Cartuchos de tinta, Cabezal piezoeléctrico (con rutina de **limpieza de cabezales**) y Caja de mantenimiento / absorbedor residual.
+  - **Matricial (`GhostDot LX-350 9-Agujas`)**: Cinta entintada (*Ribbon*), Tractor de papel continuo y Cabezal de 9 agujas.
 - **Panel frontal realista**: Pantalla LCD con códigos de estado reales (`LISTO`, `AVISO`, `Err 50.4 · FALLO FUSOR`, `Error de servicio 0xEA`) y 4 LEDs animados (`Power`, `Error`, `Consumible`, `Papel`).
 - **Cubierta abatible e inspección SVG**: Al pulsar **Abrir Cubierta**, se muestra el diagrama interno interactivo. Al pasar el ratón se despliega un *tooltip* educativo con la función física del componente y su umbral crítico.
 - **Impresión simulada con defectos visuales reales**:
@@ -153,10 +153,11 @@ Abrir `index.html` directamente ya no basta: los estilos de Tailwind se generan 
 - **Sin atajo «Salud 100%»**: con un ticket en curso ya no arregla la avería sin diagnosticarla.
 - **Importación de progreso segura**: un código manipulado podía marcar tickets como resueltos y ejecutar código en el navegador de quien lo importaba (la «flag» se pintaba sin escapar). Ahora solo se aceptan tickets con su flag correcta y todo se escapa.
 - **Página de prueba por impresora**: imprimir en la láser ya no valida el ticket de la matricial (y al revés).
+- **Sin atajo en el conflicto de driver**: *Simular conflicto de driver* y *Limpiar conflicto manual* ya no quitan por debajo el driver PCL genérico (antes el albarán salía limpio sin desinstalar nada) ni reinstalan un dispositivo desinstalado.
 - **Limpieza**: fuera el esqueleto de React sin uso, las dependencias y ficheros de AI Studio y el logo duplicado.
 
 ---
 
-## Licencia## Licencia
+## Licencia
 
 Distribuido bajo licencia **MIT**. Consulta el archivo [`LICENSE`](./LICENSE) para más detalles.
